@@ -32,4 +32,18 @@ describe("Calculate Price Usecase", () => {
         const price = usecase.execute(from, to, distanceKm);
         expect(price).toBe(5);
     });
+    it("should double the total price if the ride is on Christmas Day", () => {
+        const usecase = new CalculatePriceUsecase();
+        const from: Location = { address: "Tour Eiffel", isInsideParis: true };
+        const to: Location = { address: "Louvre", isInsideParis: true };
+        const distanceKm = 10;
+
+        // On crée une date qui tombe un 25 décembre
+        const christmasDate = new Date("2026-12-25");
+
+        // On appelle execute avec la date en 4ème argument
+        const price = usecase.execute(from, to, distanceKm, christmasDate);
+
+        expect(price).toBe(14);
+    });
 });
