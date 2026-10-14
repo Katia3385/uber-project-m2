@@ -8,6 +8,7 @@
     "test:watch": "vitest --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "start": "tsx src/api/server.ts",
     "knex": "knex --knexfile setup-integration-tests/knexfile.ts"
   },
   "keywords": [],
