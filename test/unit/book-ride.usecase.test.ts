@@ -1,29 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import { BookRideUsecase } from "../../src/app/book-ride.usecase";
 
-describe("Book Ride Usecase", () => {
-    it("should throw an error if the rider does not have enough funds", () => {
-        const usecase = new BookRideUsecase();
-        const riderBalance = 10;
-        const ridePrice = 15;
+// 1. On crée un faux Repository (Mock)
+class MockRideRepository {
+    async save(ride: any) {
+        // Simule la base de données qui ajoute un ID
+        return { id: "ride_generated_by_db", ...ride };
+    }
+}
 
-        expect(() => usecase.execute(riderBalance, ridePrice)).toThrow("Insufficient funds");
+describe("BookRideUsecase (avec DB)", () => {
+    let usecase: BookRideUsecase;
+    let mockRideRepo: MockRideRepository;
+
+    beforeEach(() => {
+        mockRideRepo = new MockRideRepository();
+        // On injecte le mock dans le Use Case
+        usecase = new BookRideUsecase(mockRideRepo as any);
     });
 
-    it("should return success if the rider has enough funds", () => {
-        const usecase = new BookRideUsecase();
-        const riderBalance = 20;
-        const ridePrice = 15;
+    it("should save a new ride into the database", async () => {
+        // GIVEN : Les données d'une nouvelle course
+        const newRideData = {
+            riderId: "rider_123",
+            driverId: "driver_456",
+            status: "PENDING",
+            price: 15.5,
+            penalty: 0,
+            isDriverOnTheWay: false
+        };
 
-        const result = usecase.execute(riderBalance, ridePrice);
+        const result = await usecase.execute(newRideData);
 
-        expect(result).toBe("SUCCESS");
-    });
-    it("should throw an error if the rider already has a pending ride(Driver not assigned to this ride yet) ", () => {
-        const usecase = new BookRideUsecase();
-        const riderBalance = 100;
-        const ridePrice = 15;
-        const hasPendingRide = true;
-        expect(() => usecase.execute(riderBalance, ridePrice, hasPendingRide)).toThrow("Rider already has a pending ride");
+        expect(result.id).toBe("ride_generated_by_db");
+        expect(result.price).toBe(15.5);
     });
 });

@@ -29,7 +29,6 @@ describe('RideRepository Integration', () => {
             name: 'Test Rider', balance: 100, birthday: '1990-01-01'
         }).returning('id');
 
-        // CORRECTION ICI : isAvailable au lieu de is_available
         const [driver] = await db('drivers').insert({
             name: 'Test Driver', isAvailable: true
         }).returning('id');
@@ -70,5 +69,42 @@ describe('RideRepository Integration', () => {
         expect(foundRide).toBeDefined();
         expect(foundRide?.id).toBe(savedRide.id);
         expect(foundRide?.status).toBe('PENDING');
+    });
+    it('should find ride history for a rider with driver names', async () => {
+        // GIVEN : Un rider et deux courses (une avec un driver, une sans driver annulé)
+        const ride1 = await repository.save({
+            riderId: riderId,
+            driverId: driverId,
+            status: 'COMPLETED',
+            price: 15.5,
+            penalty: 0,
+            isDriverOnTheWay: false
+        });
+
+        const ride2 = await repository.save({
+            riderId: riderId,
+            driverId: null, // Course annulée avant qu'un driver ne soit assigné
+            status: 'CANCELLED',
+            price: 0,
+            penalty: 0,
+            isDriverOnTheWay: false
+        });
+
+        // WHEN : On demande l'historique de ce rider
+        const history = await repository.findHistoryByRiderId(riderId);
+
+        // THEN : On doit retrouver les 2 courses avec les noms des drivers
+        expect(history).toHaveLength(2);
+
+        // Vérifions la première course (avec driver)
+        const completedRide = history.find(r => r.rideId === ride1.id);
+        expect(completedRide).toBeDefined();
+        expect(completedRide?.driverName).toBe('Test Driver'); // Vient de la jointure !
+        expect(completedRide?.price).toBe(15.5);
+
+        // Vérifions la deuxième course (sans driver)
+        const cancelledRide = history.find(r => r.rideId === ride2.id);
+        expect(cancelledRide).toBeDefined();
+        expect(cancelledRide?.driverName).toBe('Aucun driver'); // Le repo doit gérer le null
     });
 });

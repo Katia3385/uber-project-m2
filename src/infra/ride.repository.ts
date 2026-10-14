@@ -36,6 +36,26 @@ export class RideRepository {
         return foundDbRide ? this.mapToDomain(foundDbRide) : undefined;
     }
 
+    async findHistoryByRiderId(riderId: string): Promise<any[]> {
+        // 1. On fait une jointure à gauche (leftJoin) avec la table 'drivers'
+        // Si le driver_id est null, la ligne de la course sera quand même retournée, mais avec des infos driver nulles.
+        const results = await this.db('rides')
+            .leftJoin('drivers', 'rides.driver_id', 'drivers.id')
+            .where('rides.rider_id', riderId)
+            .select(
+                'rides.id as rideId',
+                'rides.status',
+                'rides.price',
+                'drivers.name as driverName'
+            );
+
+        // 2. On formate le résultat pour gérer le cas où il n'y a pas de driver (null)
+        return results.map(row => ({
+            ...row,
+            driverName: row.driverName || 'Aucun driver'
+        }));
+    }
+
     // Fonction privée pour traduire snake_case -> camelCase
     private mapToDomain(dbRide: any): Ride {
         return {
