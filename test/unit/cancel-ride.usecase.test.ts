@@ -1,12 +1,18 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { CancelRideUsecase } from "../../src/app/cancel-ride.usecase";
+import { Ride, Rider } from "../../src/domain/types";
 
-// 1. On crée de faux Repositories (Mocks) pour simuler la DB
+// 1. On crée de faux Repositories (Mocks) pour simuler la DB avec les bons types de retour
 class MockRideRepository {
-    async findById(id: string) { return null; }
+    async findById(id: string): Promise<Ride | undefined> {
+        return undefined;
+    }
 }
+
 class MockRiderRepository {
-    async findById(id: string) { return null; }
+    async findById(id: string): Promise<Rider | undefined> {
+        return undefined;
+    }
 }
 
 describe("CancelRideUsecase (avec DB)", () => {
@@ -17,14 +23,29 @@ describe("CancelRideUsecase (avec DB)", () => {
     beforeEach(() => {
         mockRideRepo = new MockRideRepository();
         mockRiderRepo = new MockRiderRepository();
-        // On injecte les mocks dans le Use Case (le 'as any' est une astuce TypeScript rapide)
+        // On injecte les mocks dans le Use Case
         usecase = new CancelRideUsecase(mockRideRepo as any, mockRiderRepo as any);
     });
 
     it("should cancel a ride with 0 penalty normally", async () => {
         // GIVEN : La course existe, driver pas en chemin, pas d'anniversaire
-        mockRideRepo.findById = async () => ({ id: "ride_1", status: "PENDING", isDriverOnTheWay: false });
-        mockRiderRepo.findById = async () => ({ id: "rider_1", birthday: "1990-01-01" });
+        const mockRide: Ride = {
+            id: "ride_1",
+            riderId: "rider_1",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false
+        };
+        const mockRider: Rider = {
+            id: "rider_1",
+            name: "Test Rider",
+            balance: 100,
+            birthday: "1990-01-01"
+        };
+
+        mockRideRepo.findById = async () => mockRide;
+        mockRiderRepo.findById = async () => mockRider;
 
         // WHEN
         const result = await usecase.execute("rider_1", "ride_1");
@@ -35,8 +56,23 @@ describe("CancelRideUsecase (avec DB)", () => {
 
     it("should apply 5 penalty if driver is on the way", async () => {
         // GIVEN : Le driver est en chemin
-        mockRideRepo.findById = async () => ({ id: "ride_2", status: "PENDING", isDriverOnTheWay: true });
-        mockRiderRepo.findById = async () => ({ id: "rider_2", birthday: "1990-01-01" });
+        const mockRide: Ride = {
+            id: "ride_2",
+            riderId: "rider_2",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: true
+        };
+        const mockRider: Rider = {
+            id: "rider_2",
+            name: "Test Rider",
+            balance: 100,
+            birthday: "1990-01-01"
+        };
+
+        mockRideRepo.findById = async () => mockRide;
+        mockRiderRepo.findById = async () => mockRider;
 
         // WHEN
         const result = await usecase.execute("rider_2", "ride_2");
@@ -47,8 +83,23 @@ describe("CancelRideUsecase (avec DB)", () => {
 
     it("should throw an error if ride is already cancelled", async () => {
         // GIVEN : La course est déjà annulée
-        mockRideRepo.findById = async () => ({ id: "ride_3", status: "CANCELLED", isDriverOnTheWay: false });
-        mockRiderRepo.findById = async () => ({ id: "rider_3", birthday: "1990-01-01" });
+        const mockRide: Ride = {
+            id: "ride_3",
+            riderId: "rider_3",
+            status: "CANCELLED",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false
+        };
+        const mockRider: Rider = {
+            id: "rider_3",
+            name: "Test Rider",
+            balance: 100,
+            birthday: "1990-01-01"
+        };
+
+        mockRideRepo.findById = async () => mockRide;
+        mockRiderRepo.findById = async () => mockRider;
 
         // WHEN & THEN
         await expect(usecase.execute("rider_3", "ride_3")).rejects.toThrow("Ride already cancelled");
@@ -56,8 +107,25 @@ describe("CancelRideUsecase (avec DB)", () => {
 
     it("should have 0 penalty if it is the rider's birthday", async () => {
         // GIVEN : Driver en chemin (normalement 5€), MAIS c'est l'anniversaire aujourd'hui
-        mockRideRepo.findById = async () => ({ id: "ride_4", status: "PENDING", isDriverOnTheWay: true });
-        mockRiderRepo.findById = async () => ({ id: "rider_4", birthday: new Date().toISOString().split('T')[0] }); // Date d'aujourd'hui
+        const today = new Date().toISOString().split('T')[0];
+
+        const mockRide: Ride = {
+            id: "ride_4",
+            riderId: "rider_4",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: true
+        };
+        const mockRider: Rider = {
+            id: "rider_4",
+            name: "Test Rider",
+            balance: 100,
+            birthday: today // Date d'aujourd'hui
+        };
+
+        mockRideRepo.findById = async () => mockRide;
+        mockRiderRepo.findById = async () => mockRider;
 
         // WHEN
         const result = await usecase.execute("rider_4", "ride_4");
