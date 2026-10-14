@@ -1,0 +1,40 @@
+{
+  "name": "project_uber",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "knex": "knex --knexfile setup-integration-tests/knexfile.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.4.2",
+    "cors": "^2.8.6",
+    "date-fns": "^4.4.0",
+    "express": "^5.3.0",
+    "knex": "^3.3.0",
+    "pg": "^8.23.1",
+    "uuid": "^14.0.3"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "@types/uuid": "^10.0.0",
+    "supertest": "^7.3.1",
+    "testcontainers": "^12.2.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  }
+}
