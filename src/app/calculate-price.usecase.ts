@@ -42,6 +42,17 @@ export class CalculatePriceUsecase {
             totalPrice += 5;
         }
 
+        // Règle 3 : heures de pointe, +50 % sur le total, cumulé avec Noël et UberX.
+        // 8h inclus jusqu'à 9h exclu, 18h inclus jusqu'à 20h exclu.
+        if (this.isPeakHour(today)) {
+            totalPrice = totalPrice * 1.5;
+        }
+
         return totalPrice;
+    }
+
+    private isPeakHour(date: Date): boolean {
+        const hour = date.getHours();
+        return (hour >= 8 && hour < 9) || (hour >= 18 && hour < 20);
     }
 }

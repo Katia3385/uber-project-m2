@@ -45,4 +45,26 @@ describe("CalculatePriceUsecase", () => {
         // 7€ de base + 0€ de supplément (offert) = 7€
         expect(usecase.execute(from, to, distanceKm, true, riderBirthday)).toBe(7);
     });
+
+    it("should add 50 percent during the morning peak", () => {
+        const clock = new FakeClock(new Date("2023-06-15T08:30:00"));
+        const usecase = new CalculatePriceUsecase(clock);
+
+        expect(usecase.execute(from, to, distanceKm)).toBe(10.5); // 7€ × 1,5
+    });
+
+    it("should add 50 percent during the evening peak", () => {
+        const clock = new FakeClock(new Date("2023-06-15T19:00:00"));
+        const usecase = new CalculatePriceUsecase(clock);
+
+        expect(usecase.execute(from, to, distanceKm)).toBe(10.5);
+    });
+
+    it("should stack the peak increase with Christmas and UberX", () => {
+        const clock = new FakeClock(new Date("2023-12-25T08:30:00"));
+        const usecase = new CalculatePriceUsecase(clock);
+
+        // (7 × 2 + 5) × 1,5 = 28,5
+        expect(usecase.execute(from, to, distanceKm, true)).toBe(28.5);
+    });
 });
