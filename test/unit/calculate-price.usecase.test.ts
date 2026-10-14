@@ -46,4 +46,21 @@ describe("Calculate Price Usecase", () => {
 
         expect(price).toBe(14);
     });
+    it("should add 5 euros for UberX service, unless it is the rider's birthday", () => {
+        const usecase = new CalculatePriceUsecase();
+        const from: Location = { address: "Tour Eiffel", isInsideParis: true };
+        const to: Location = { address: "Louvre", isInsideParis: true };
+        const distanceKm = 10;
+        // Prix normal : 2€ (base) + 10 * 0.5€ = 7€.
+
+        // SCÉNARIO 1 : C'est UberX, mais ce n'est PAS l'anniversaire
+        // Prix attendu : 7€ + 5€ (supplément) = 12€
+        const priceUberX = usecase.execute(from, to, distanceKm, new Date(), true, false);
+        expect(priceUberX).toBe(12);
+
+        // SCÉNARIO 2 : C'est UberX, ET c'est l'anniversaire du Rider
+        // Prix attendu : 7€ + 0€ (offert) = 7€
+        const priceBirthday = usecase.execute(from, to, distanceKm, new Date(), true, true);
+        expect(priceBirthday).toBe(7);
+    });
 });
