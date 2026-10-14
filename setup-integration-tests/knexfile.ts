@@ -11,7 +11,8 @@ const config: { [key: string]: Knex.Config } = {
             database: 'uber_test',
         },
         migrations: {
-            directory:   './setup-integration-tests/migrations',
+            directory: './migrations',
+            extension: 'ts',
         },
     },
 };
