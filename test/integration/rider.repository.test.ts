@@ -39,7 +39,7 @@ describe('RiderRepository Integration', () => {
         };
         const savedRider = await repository.save(newRider);
 
-        const foundRider = await repository.findById(savedRider.id);
+        const foundRider = await repository.findById(savedRider.id!);
 
         expect(foundRider).toBeDefined();
         expect(foundRider?.name).toBe('Jean');
