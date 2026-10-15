@@ -25,6 +25,22 @@ describe("CalculatePriceUsecase", () => {
         expect(usecase.execute(from, to, distanceKm)).toBe(7);
     });
 
+    it("should charge 0 euro of base price from outside Paris to Paris", () => {
+        const clock = new FakeClock(new Date("2023-06-15"));
+        const usecase = new CalculatePriceUsecase(clock);
+        const outside: Location = { address: "Lyon Part-Dieu", isInsideParis: false };
+
+        expect(usecase.execute(outside, to, distanceKm)).toBe(5); // 0€ + (10 * 0.5€)
+    });
+
+    it("should charge 10 euros of base price from Paris to outside Paris", () => {
+        const clock = new FakeClock(new Date("2023-06-15"));
+        const usecase = new CalculatePriceUsecase(clock);
+        const outside: Location = { address: "Lyon Part-Dieu", isInsideParis: false };
+
+        expect(usecase.execute(from, outside, distanceKm)).toBe(15); // 10€ + (10 * 0.5€)
+    });
+
     it("should double price on Christmas", () => {
         const clock = new FakeClock(new Date("2023-12-25")); // Noël
         const usecase = new CalculatePriceUsecase(clock);
