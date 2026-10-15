@@ -80,6 +80,22 @@ describe("CalculatePriceUsecase", () => {
         expect(usecase.execute(from, to, distanceKm, true, riderBirthday)).toBe(7);
     });
 
+    it("should offer UberX supplement on rider's birthday whatever the birth year", () => {
+        const clock = new FakeClock(new Date("2023-06-15"));
+        const usecase = new CalculatePriceUsecase(clock);
+        const riderBirthday = "1990-06-15"; // Né en 1990, anniversaire aujourd'hui
+
+        expect(usecase.execute(from, to, distanceKm, true, riderBirthday)).toBe(7);
+    });
+
+    it("should charge UberX supplement the day after the rider's birthday", () => {
+        const clock = new FakeClock(new Date("2023-06-15"));
+        const usecase = new CalculatePriceUsecase(clock);
+        const riderBirthday = "1990-06-14";
+
+        expect(usecase.execute(from, to, distanceKm, true, riderBirthday)).toBe(12); // 7€ + 5€
+    });
+
     it("should add 50 percent during the morning peak", () => {
         const clock = new FakeClock(new Date("2023-06-15T08:30:00"));
         const usecase = new CalculatePriceUsecase(clock);

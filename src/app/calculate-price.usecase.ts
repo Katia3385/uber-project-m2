@@ -35,8 +35,9 @@ export class CalculatePriceUsecase {
         }
 
         // Règle 2 : Supplément UberX (+5€), SAUF si c'est l'anniversaire du Rider
-        const todayString = today.toISOString().split('T')[0];
-        const isBirthday = riderBirthday === todayString;
+        // On compare seulement le mois et le jour (MM-DD) : l'année de naissance ne compte pas
+        const todayMonthDay = today.toISOString().slice(5, 10);
+        const isBirthday = riderBirthday?.slice(5, 10) === todayMonthDay;
 
         if (isUberX && !isBirthday) {
             totalPrice += 5;
