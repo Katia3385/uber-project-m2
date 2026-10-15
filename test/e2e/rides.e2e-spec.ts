@@ -6,6 +6,10 @@ import { CancelRideUsecase } from "../../src/app/cancel-ride.usecase";
 import { GetRideHistoryUsecase } from "../../src/app/get-ride-history.usecase";
 import { Ride, Rider } from "../../src/domain/types";
 import { Clock } from "../../src/domain/clock";
+import { CalculatePriceUsecase } from "../../src/app/calculate-price.usecase";
+import { EstimateRideUsecase } from "../../src/app/estimate-ride.usecase";
+import { BookRideFromEstimateUsecase } from "../../src/app/book-ride-from-estimate.usecase";
+import { InMemoryEstimateRepository, StubScanTrip } from "./support/estimate-fakes";
 
 class FakeClock implements Clock {
     now(): Date {
@@ -88,10 +92,22 @@ describe("Rides API", () => {
     });
 
     function app() {
+        const clock = new FakeClock();
+        const estimates = new InMemoryEstimateRepository();
+        const bookRide = new BookRideUsecase(rides as never, riders as never, blockedDrivers as never);
+
         return createApp(
-            new BookRideUsecase(rides as never, riders as never, blockedDrivers as never),
-            new CancelRideUsecase(rides as never, riders as never, new FakeClock()),
+            bookRide,
+            new CancelRideUsecase(rides as never, riders as never, clock),
             new GetRideHistoryUsecase(rides as never),
+            new EstimateRideUsecase(
+                new StubScanTrip() as never,
+                new CalculatePriceUsecase(clock),
+                riders as never,
+                estimates as never,
+                clock,
+            ),
+            new BookRideFromEstimateUsecase(estimates as never, bookRide, clock),
         );
     }
 

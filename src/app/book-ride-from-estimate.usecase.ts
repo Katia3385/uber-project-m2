@@ -20,11 +20,14 @@ export class BookRideFromEstimateUsecase {
         const estimate = await this.estimateRepository.findByToken(token);
         if (!estimate) throw new Error("Estimate not found");
 
+        // Un token ne sert qu'une seule fois
+        if (estimate.used) throw new Error("Estimate already used");
+
         if (this.clock.now() > estimate.expiresAt) {
             throw new Error("Estimate expired");
         }
 
-        return this.bookRide.execute({
+        const ride = await this.bookRide.execute({
             riderId: estimate.riderId,
             driverId,
             status: "PENDING",
@@ -32,5 +35,10 @@ export class BookRideFromEstimateUsecase {
             penalty: 0,
             isDriverOnTheWay: false,
         });
+
+        // On ne consomme le token que si la réservation a réussi
+        await this.estimateRepository.markAsUsed(token);
+
+        return ride;
     }
 }

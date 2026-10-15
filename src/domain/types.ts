@@ -31,4 +31,5 @@ export type Estimate = {
     riderId: string;
     price: number;
     expiresAt: Date;
+    used?: boolean;
 };

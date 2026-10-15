@@ -26,12 +26,17 @@ export class EstimateRepository {
         return foundDbEstimate ? this.mapToDomain(foundDbEstimate) : undefined;
     }
 
+    async markAsUsed(token: string): Promise<void> {
+        await this.db('estimates').where({ token }).update({ used: true });
+    }
+
     private mapToDomain(dbEstimate: any): Estimate {
         return {
             token: dbEstimate.token,
             riderId: dbEstimate.rider_id,
             price: dbEstimate.price,
             expiresAt: dbEstimate.expires_at,
+            used: dbEstimate.used,
         };
     }
 }

@@ -16,10 +16,16 @@ class MockEstimateRepository {
         riderId: "rider_1",
         price: 12.5,
         expiresAt: new Date("2023-06-15T12:05:00Z"),
+        used: false,
     };
+    usedTokens: string[] = [];
 
     async findByToken(_token: string): Promise<Estimate | undefined> {
         return this.estimate;
+    }
+
+    async markAsUsed(token: string): Promise<void> {
+        this.usedTokens.push(token);
     }
 }
 
@@ -67,6 +73,28 @@ describe("BookRideFromEstimateUsecase", () => {
     it("should refuse an expired estimate", async () => {
         await expect(usecaseAt("2023-06-15T12:06:00Z").execute("token_1")).rejects.toThrow("Estimate expired");
         expect(bookRide.booked).toHaveLength(0);
+    });
+
+    it("should refuse an estimate that was already used", async () => {
+        estimateRepo.estimate = { ...estimateRepo.estimate!, used: true };
+
+        await expect(usecaseAt("2023-06-15T12:04:00Z").execute("token_1")).rejects.toThrow("Estimate already used");
+        expect(bookRide.booked).toHaveLength(0);
+    });
+
+    it("should mark the estimate as used once the ride is booked", async () => {
+        await usecaseAt("2023-06-15T12:04:00Z").execute("token_1");
+
+        expect(estimateRepo.usedTokens).toEqual(["token_1"]);
+    });
+
+    it("should keep the estimate usable when the booking fails", async () => {
+        bookRide.execute = async () => {
+            throw new Error("Insufficient funds");
+        };
+
+        await expect(usecaseAt("2023-06-15T12:04:00Z").execute("token_1")).rejects.toThrow("Insufficient funds");
+        expect(estimateRepo.usedTokens).toEqual([]);
     });
 
     it("should refuse an unknown token", async () => {

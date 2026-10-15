@@ -59,4 +59,19 @@ describe('EstimateRepository Integration', () => {
 
         expect(found).toBeUndefined();
     });
+
+    it('should create an estimate as not used', async () => {
+        const saved = await repository.save({ riderId, price: 7, expiresAt: new Date('2026-12-01T10:05:00.000Z') });
+
+        expect(saved.used).toBe(false);
+    });
+
+    it('should mark an estimate as used', async () => {
+        const saved = await repository.save({ riderId, price: 7, expiresAt: new Date('2026-12-01T10:05:00.000Z') });
+
+        await repository.markAsUsed(saved.token!);
+
+        const found = await repository.findByToken(saved.token!);
+        expect(found?.used).toBe(true);
+    });
 });

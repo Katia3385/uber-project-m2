@@ -6,6 +6,12 @@ import { RideRepository } from "../infra/ride.repository";
 import { RiderRepository } from "../infra/rider.repository";
 import { BlockedDriverRepository } from "../infra/blocked-driver.repository";
 import { SystemClock } from "../infra/system-clock";
+import { EstimateRepository } from "../infra/estimate.repository";
+import { createGoogleDistanceScanner } from "../infra/google-distance-scanner";
+import { ScanTripUsecase } from "../app/scan-trip.usecase";
+import { CalculatePriceUsecase } from "../app/calculate-price.usecase";
+import { EstimateRideUsecase } from "../app/estimate-ride.usecase";
+import { BookRideFromEstimateUsecase } from "../app/book-ride-from-estimate.usecase";
 import knexConfig from "../../setup-integration-tests/knexfile";
 import { createApp } from "./app";
 
@@ -24,10 +30,22 @@ const rideRepository = new RideRepository(db);
 const riderRepository = new RiderRepository(db);
 const blockedDriverRepository = new BlockedDriverRepository(db);
 
+const clock = new SystemClock();
+const estimateRepository = new EstimateRepository(db);
+const bookRide = new BookRideUsecase(rideRepository, riderRepository, blockedDriverRepository);
+
 const app = createApp(
-    new BookRideUsecase(rideRepository, riderRepository, blockedDriverRepository),
-    new CancelRideUsecase(rideRepository, riderRepository, new SystemClock()),
+    bookRide,
+    new CancelRideUsecase(rideRepository, riderRepository, clock),
     new GetRideHistoryUsecase(rideRepository),
+    new EstimateRideUsecase(
+        new ScanTripUsecase(createGoogleDistanceScanner()),
+        new CalculatePriceUsecase(clock),
+        riderRepository,
+        estimateRepository,
+        clock,
+    ),
+    new BookRideFromEstimateUsecase(estimateRepository, bookRide, clock),
 );
 
 const port = Number(process.env.PORT ?? 3000);
