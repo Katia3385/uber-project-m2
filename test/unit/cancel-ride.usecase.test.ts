@@ -1,6 +1,14 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { CancelRideUsecase } from "../../src/app/cancel-ride.usecase";
 import { Ride, Rider } from "../../src/domain/types";
+import { Clock } from "../../src/domain/clock";
+
+// Fausse horloge : on fixe la date pour que l'anniversaire ne dépende pas du jour réel
+class FakeClock implements Clock {
+    now(): Date {
+        return new Date("2023-06-15");
+    }
+}
 
 // 1. On crée de faux Repositories (Mocks) pour simuler la DB avec les bons types de retour
 class MockRideRepository {
@@ -24,7 +32,7 @@ describe("CancelRideUsecase (avec DB)", () => {
         mockRideRepo = new MockRideRepository();
         mockRiderRepo = new MockRiderRepository();
         // On injecte les mocks dans le Use Case
-        usecase = new CancelRideUsecase(mockRideRepo as any, mockRiderRepo as any);
+        usecase = new CancelRideUsecase(mockRideRepo as any, mockRiderRepo as any, new FakeClock());
     });
 
     it("should cancel a ride with 0 penalty normally", async () => {
@@ -105,10 +113,8 @@ describe("CancelRideUsecase (avec DB)", () => {
         await expect(usecase.execute("rider_3", "ride_3")).rejects.toThrow("Ride already cancelled");
     });
 
-    it("should have 0 penalty if it is the rider's birthday", async () => {
-        // GIVEN : Driver en chemin (normalement 5€), MAIS c'est l'anniversaire aujourd'hui
-        const today = new Date().toISOString().split('T')[0];
-
+    it("should have 0 penalty if it is the rider's birthday, whatever the birth year", async () => {
+        // GIVEN : Driver en chemin (normalement 5€), MAIS c'est l'anniversaire aujourd'hui (né en 1990)
         const mockRide: Ride = {
             id: "ride_4",
             riderId: "rider_4",
@@ -121,7 +127,7 @@ describe("CancelRideUsecase (avec DB)", () => {
             id: "rider_4",
             name: "Test Rider",
             balance: 100,
-            birthday: today // Date d'aujourd'hui
+            birthday: "1990-06-15"
         };
 
         mockRideRepo.findById = async () => mockRide;
@@ -132,5 +138,29 @@ describe("CancelRideUsecase (avec DB)", () => {
 
         // THEN
         expect(result.penalty).toBe(0);
+    });
+
+    it("should apply the penalty the day after the rider's birthday", async () => {
+        const mockRide: Ride = {
+            id: "ride_5",
+            riderId: "rider_5",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: true
+        };
+        const mockRider: Rider = {
+            id: "rider_5",
+            name: "Test Rider",
+            balance: 100,
+            birthday: "1990-06-14"
+        };
+
+        mockRideRepo.findById = async () => mockRide;
+        mockRiderRepo.findById = async () => mockRider;
+
+        const result = await usecase.execute("rider_5", "ride_5");
+
+        expect(result.penalty).toBe(5);
     });
 });

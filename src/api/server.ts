@@ -4,6 +4,7 @@ import { CancelRideUsecase } from "../app/cancel-ride.usecase";
 import { GetRideHistoryUsecase } from "../app/get-ride-history.usecase";
 import { RideRepository } from "../infra/ride.repository";
 import { RiderRepository } from "../infra/rider.repository";
+import { SystemClock } from "../infra/system-clock";
 import knexConfig from "../../setup-integration-tests/knexfile";
 import { createApp } from "./app";
 
@@ -23,7 +24,7 @@ const riderRepository = new RiderRepository(db);
 
 const app = createApp(
     new BookRideUsecase(rideRepository, riderRepository),
-    new CancelRideUsecase(rideRepository, riderRepository),
+    new CancelRideUsecase(rideRepository, riderRepository, new SystemClock()),
     new GetRideHistoryUsecase(rideRepository),
 );
 

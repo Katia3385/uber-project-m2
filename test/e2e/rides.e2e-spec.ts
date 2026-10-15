@@ -5,6 +5,13 @@ import { BookRideUsecase } from "../../src/app/book-ride.usecase";
 import { CancelRideUsecase } from "../../src/app/cancel-ride.usecase";
 import { GetRideHistoryUsecase } from "../../src/app/get-ride-history.usecase";
 import { Ride, Rider } from "../../src/domain/types";
+import { Clock } from "../../src/domain/clock";
+
+class FakeClock implements Clock {
+    now(): Date {
+        return new Date("2023-06-15");
+    }
+}
 
 class InMemoryRideRepository {
     rides: Ride[] = [];
@@ -63,7 +70,7 @@ describe("Rides API", () => {
     function app() {
         return createApp(
             new BookRideUsecase(rides as never, riders as never),
-            new CancelRideUsecase(rides as never, riders as never),
+            new CancelRideUsecase(rides as never, riders as never, new FakeClock()),
             new GetRideHistoryUsecase(rides as never),
         );
     }

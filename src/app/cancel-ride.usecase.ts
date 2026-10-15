@@ -1,14 +1,17 @@
 import { RideRepository } from "../infra/ride.repository";
 import { RiderRepository } from "../infra/rider.repository";
+import { Clock } from "../domain/clock";
 
 export class CancelRideUsecase {
     private rideRepository: RideRepository;
     private riderRepository: RiderRepository;
+    private clock: Clock;
 
-    // Le constructeur reçoit maintenant les Repositories (Injection de Dépendances)
-    constructor(rideRepository: RideRepository, riderRepository: RiderRepository) {
+    // Le constructeur reçoit les Repositories et l'horloge (Injection de Dépendances)
+    constructor(rideRepository: RideRepository, riderRepository: RiderRepository, clock: Clock) {
         this.rideRepository = rideRepository;
         this.riderRepository = riderRepository;
+        this.clock = clock;
     }
 
     // La méthode devient async car on attend des réponses de la base de données
@@ -30,9 +33,10 @@ export class CancelRideUsecase {
         let penalty = 0;
 
         // 3. Règle : Vérification de l'anniversaire
-        // On compare la date d'aujourd'hui (YYYY-MM-DD) avec la date d'anniversaire du rider
-        const today = new Date().toISOString().split('T')[0];
-        const isBirthday = rider.birthday === today;
+        // On compare le jour et le mois d'aujourd'hui (MM-DD) avec ceux de la naissance du rider :
+        // l'année de naissance ne compte pas
+        const todayMonthDay = this.clock.now().toISOString().slice(5, 10);
+        const isBirthday = rider.birthday.slice(5, 10) === todayMonthDay;
 
         // 4. Calcul de la pénalité
         if (isBirthday) {
