@@ -30,6 +30,7 @@ describe('RiderRepository Integration', () => {
 
         expect(savedRider.id).toBeDefined();
         expect(savedRider.name).toBe('Katia');
+        expect(savedRider.birthday).toBe('1995-05-15');
     });
     it('should find a rider by id', async () => {
         const newRider: Rider = {
@@ -44,5 +45,6 @@ describe('RiderRepository Integration', () => {
         expect(foundRider).toBeDefined();
         expect(foundRider?.name).toBe('Jean');
         expect(foundRider?.balance).toBe(50);
+        expect(foundRider?.birthday).toBe('1990-01-01');
     });
 });
