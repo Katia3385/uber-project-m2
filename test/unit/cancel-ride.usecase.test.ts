@@ -12,14 +12,26 @@ class FakeClock implements Clock {
 
 // 1. On crée de faux Repositories (Mocks) pour simuler la DB avec les bons types de retour
 class MockRideRepository {
+    updatedRides: { id: string; status: string; penalty: number }[] = [];
+
     async findById(id: string): Promise<Ride | undefined> {
         return undefined;
+    }
+
+    async update(id: string, changes: { status: string; penalty: number }): Promise<void> {
+        this.updatedRides.push({ id, ...changes });
     }
 }
 
 class MockRiderRepository {
+    updatedBalances: { id: string; balance: number }[] = [];
+
     async findById(id: string): Promise<Rider | undefined> {
         return undefined;
+    }
+
+    async updateBalance(id: string, balance: number): Promise<void> {
+        this.updatedBalances.push({ id, balance });
     }
 }
 
@@ -162,5 +174,57 @@ describe("CancelRideUsecase (avec DB)", () => {
         const result = await usecase.execute("rider_5", "ride_5");
 
         expect(result.penalty).toBe(5);
+    });
+    it("should save the cancelled status and the penalty on the ride", async () => {
+        mockRideRepo.findById = async () => ({
+            id: "ride_6", riderId: "rider_6", status: "PENDING", price: 10, penalty: 0, isDriverOnTheWay: true
+        });
+        mockRiderRepo.findById = async () => ({
+            id: "rider_6", name: "Test Rider", balance: 100, birthday: "1990-01-01"
+        });
+
+        await usecase.execute("rider_6", "ride_6");
+
+        expect(mockRideRepo.updatedRides).toEqual([{ id: "ride_6", status: "CANCELLED", penalty: 5 }]);
+    });
+
+    it("should charge the penalty to the rider's balance", async () => {
+        mockRideRepo.findById = async () => ({
+            id: "ride_7", riderId: "rider_7", status: "PENDING", price: 10, penalty: 0, isDriverOnTheWay: true
+        });
+        mockRiderRepo.findById = async () => ({
+            id: "rider_7", name: "Test Rider", balance: 100, birthday: "1990-01-01"
+        });
+
+        await usecase.execute("rider_7", "ride_7");
+
+        expect(mockRiderRepo.updatedBalances).toEqual([{ id: "rider_7", balance: 95 }]);
+    });
+
+    it("should not touch the balance when there is no penalty", async () => {
+        mockRideRepo.findById = async () => ({
+            id: "ride_8", riderId: "rider_8", status: "PENDING", price: 10, penalty: 0, isDriverOnTheWay: false
+        });
+        mockRiderRepo.findById = async () => ({
+            id: "rider_8", name: "Test Rider", balance: 100, birthday: "1990-01-01"
+        });
+
+        await usecase.execute("rider_8", "ride_8");
+
+        expect(mockRiderRepo.updatedBalances).toEqual([]);
+    });
+
+    it("should not save anything when the ride is already cancelled", async () => {
+        mockRideRepo.findById = async () => ({
+            id: "ride_9", riderId: "rider_9", status: "CANCELLED", price: 10, penalty: 0, isDriverOnTheWay: true
+        });
+        mockRiderRepo.findById = async () => ({
+            id: "rider_9", name: "Test Rider", balance: 100, birthday: "1990-01-01"
+        });
+
+        await expect(usecase.execute("rider_9", "ride_9")).rejects.toThrow("Ride already cancelled");
+
+        expect(mockRideRepo.updatedRides).toEqual([]);
+        expect(mockRiderRepo.updatedBalances).toEqual([]);
     });
 });

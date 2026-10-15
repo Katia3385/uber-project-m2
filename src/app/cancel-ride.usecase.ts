@@ -45,6 +45,12 @@ export class CancelRideUsecase {
             penalty = 5; // Le driver est en chemin
         }
 
+        // 5. On enregistre l'annulation, puis on débite la pénalité du solde du Rider
+        await this.rideRepository.update(rideId, { status: "CANCELLED", penalty });
+        if (penalty > 0) {
+            await this.riderRepository.updateBalance(riderId, rider.balance - penalty);
+        }
+
         // On retourne l'objet de succès
         return {
             status: "CANCELLED",

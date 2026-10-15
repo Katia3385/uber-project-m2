@@ -26,6 +26,11 @@ class InMemoryRideRepository {
         return this.rides.find((ride) => ride.id === id);
     }
 
+    async update(id: string, changes: { status: string; penalty: number }): Promise<void> {
+        const ride = this.rides.find((r) => r.id === id);
+        if (ride) Object.assign(ride, changes);
+    }
+
     async findAwaitingDriverByRiderId(riderId: string): Promise<Ride | undefined> {
         return this.rides.find(
             (ride) => ride.riderId === riderId && ride.status === "PENDING" && !ride.driverId,
@@ -49,6 +54,11 @@ class InMemoryRiderRepository {
 
     async findById(id: string): Promise<Rider | undefined> {
         return this.riders.find((rider) => rider.id === id);
+    }
+
+    async updateBalance(id: string, balance: number): Promise<void> {
+        const rider = this.riders.find((r) => r.id === id);
+        if (rider) rider.balance = balance;
     }
 }
 

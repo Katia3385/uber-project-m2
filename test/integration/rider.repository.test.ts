@@ -47,4 +47,16 @@ describe('RiderRepository Integration', () => {
         expect(foundRider?.balance).toBe(50);
         expect(foundRider?.birthday).toBe('1990-01-01');
     });
+    it('should update the balance of a rider', async () => {
+        const savedRider = await repository.save({
+            name: 'Lea',
+            balance: 100,
+            birthday: '1992-03-10'
+        });
+
+        await repository.updateBalance(savedRider.id!, 95);
+
+        const foundRider = await repository.findById(savedRider.id!);
+        expect(foundRider?.balance).toBe(95);
+    });
 });

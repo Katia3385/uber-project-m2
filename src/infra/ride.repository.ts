@@ -31,6 +31,10 @@ export class RideRepository {
         return foundDbRide ? this.mapToDomain(foundDbRide) : undefined;
     }
 
+    async update(id: string, changes: { status: string; penalty: number }): Promise<void> {
+        await this.db('rides').where({ id }).update(changes);
+    }
+
     // Course en attente à laquelle aucun Driver n'est encore assigné
     async findAwaitingDriverByRiderId(riderId: string): Promise<Ride | undefined> {
         const foundDbRide = await this.db('rides')

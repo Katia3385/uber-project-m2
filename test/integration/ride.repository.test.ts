@@ -73,6 +73,23 @@ describe('RideRepository Integration', () => {
         expect(foundRide?.status).toBe('PENDING');
     });
 
+    it('should update the status and the penalty of a ride', async () => {
+        const ride = await repository.save({
+            riderId: riderId,
+            driverId: driverId,
+            status: 'PENDING',
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: true
+        });
+
+        await repository.update(ride.id!, { status: 'CANCELLED', penalty: 5 });
+
+        const found = await repository.findById(ride.id!);
+        expect(found?.status).toBe('CANCELLED');
+        expect(found?.penalty).toBe(5);
+    });
+
     it('should find the pending ride that has no driver assigned yet', async () => {
         const waitingRide = await repository.save({
             riderId: riderId,

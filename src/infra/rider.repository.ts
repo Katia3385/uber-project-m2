@@ -19,6 +19,10 @@ export class RiderRepository {
         return foundRider ? this.mapToDomain(foundRider) : undefined;
     }
 
+    async updateBalance(id: string, balance: number): Promise<void> {
+        await this.db('riders').where({ id }).update({ balance });
+    }
+
     // Postgres renvoie la colonne `date` sous forme d'objet Date : on la remet en chaîne YYYY-MM-DD,
     // comme le promet le type Rider.
     private mapToDomain(dbRider: any): Rider {
