@@ -19,6 +19,12 @@ class InMemoryRideRepository {
         return this.rides.find((ride) => ride.id === id);
     }
 
+    async findAwaitingDriverByRiderId(riderId: string): Promise<Ride | undefined> {
+        return this.rides.find(
+            (ride) => ride.riderId === riderId && ride.status === "PENDING" && !ride.driverId,
+        );
+    }
+
     async findHistoryByRiderId(riderId: string) {
         return this.rides
             .filter((ride) => ride.riderId === riderId)
@@ -56,7 +62,7 @@ describe("Rides API", () => {
 
     function app() {
         return createApp(
-            new BookRideUsecase(rides as never),
+            new BookRideUsecase(rides as never, riders as never),
             new CancelRideUsecase(rides as never, riders as never),
             new GetRideHistoryUsecase(rides as never),
         );
@@ -78,6 +84,49 @@ describe("Rides API", () => {
             price: 15.5,
             status: "PENDING",
         });
+    });
+
+    it("returns 402 when the rider does not have enough funds", async () => {
+        const response = await request(app()).post("/rides").send({
+            riderId: "rider-1",
+            status: "PENDING",
+            price: 500,
+            penalty: 0,
+            isDriverOnTheWay: false,
+        });
+
+        expect(response.status).toBe(402);
+        expect(response.body).toEqual({ error: "Insufficient funds" });
+    });
+
+    it("returns 404 when the rider who books does not exist", async () => {
+        const response = await request(app()).post("/rides").send({
+            riderId: "unknown",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false,
+        });
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ error: "Rider not found" });
+    });
+
+    it("returns 409 when a previous ride still has no driver", async () => {
+        const booking = {
+            riderId: "rider-1",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false,
+        };
+        const server = app();
+        await request(server).post("/rides").send(booking);
+
+        const response = await request(server).post("/rides").send(booking);
+
+        expect(response.status).toBe(409);
+        expect(response.body).toEqual({ error: "Rider already has a pending ride" });
     });
 
     it("lists the rider history with the driver", async () => {

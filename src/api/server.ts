@@ -22,7 +22,7 @@ const rideRepository = new RideRepository(db);
 const riderRepository = new RiderRepository(db);
 
 const app = createApp(
-    new BookRideUsecase(rideRepository),
+    new BookRideUsecase(rideRepository, riderRepository),
     new CancelRideUsecase(rideRepository, riderRepository),
     new GetRideHistoryUsecase(rideRepository),
 );
