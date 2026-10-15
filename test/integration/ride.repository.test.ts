@@ -73,6 +73,51 @@ describe('RideRepository Integration', () => {
         expect(foundRide?.status).toBe('PENDING');
     });
 
+    it('should find the pending ride that has no driver assigned yet', async () => {
+        const waitingRide = await repository.save({
+            riderId: riderId,
+            driverId: undefined,
+            status: 'PENDING',
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false
+        });
+
+        const found = await repository.findAwaitingDriverByRiderId(riderId);
+
+        expect(found?.id).toBe(waitingRide.id);
+    });
+
+    it('should not find a pending ride once a driver is assigned', async () => {
+        await repository.save({
+            riderId: riderId,
+            driverId: driverId,
+            status: 'PENDING',
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false
+        });
+
+        const found = await repository.findAwaitingDriverByRiderId(riderId);
+
+        expect(found).toBeUndefined();
+    });
+
+    it('should not find a cancelled ride without driver', async () => {
+        await repository.save({
+            riderId: riderId,
+            driverId: undefined,
+            status: 'CANCELLED',
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false
+        });
+
+        const found = await repository.findAwaitingDriverByRiderId(riderId);
+
+        expect(found).toBeUndefined();
+    });
+
     it('should find ride history for a rider with driver names', async () => {
         // GIVEN : Un rider et deux courses (une avec un driver, une sans driver annulé)
         const ride1 = await repository.save({

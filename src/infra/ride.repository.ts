@@ -31,8 +31,12 @@ export class RideRepository {
         return foundDbRide ? this.mapToDomain(foundDbRide) : undefined;
     }
 
-    async findPendingByRiderId(riderId: string): Promise<Ride | undefined> {
-        const foundDbRide = await this.db('rides').where({ rider_id: riderId, status: 'PENDING' }).first();
+    // Course en attente à laquelle aucun Driver n'est encore assigné
+    async findAwaitingDriverByRiderId(riderId: string): Promise<Ride | undefined> {
+        const foundDbRide = await this.db('rides')
+            .where({ rider_id: riderId, status: 'PENDING' })
+            .whereNull('driver_id')
+            .first();
         return foundDbRide ? this.mapToDomain(foundDbRide) : undefined;
     }
 
