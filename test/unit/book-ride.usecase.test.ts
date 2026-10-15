@@ -27,10 +27,19 @@ class MockRiderRepository {
     }
 }
 
+class MockBlockedDriverRepository {
+    blockedDriverIds: string[] = [];
+
+    async isBlocked(_riderId: string, driverId: string): Promise<boolean> {
+        return this.blockedDriverIds.includes(driverId);
+    }
+}
+
 describe("BookRideUsecase (avec DB)", () => {
     let usecase: BookRideUsecase;
     let mockRideRepo: MockRideRepository;
     let mockRiderRepo: MockRiderRepository;
+    let mockBlockedDriverRepo: MockBlockedDriverRepository;
 
     const newRideData = {
         riderId: "rider_123",
@@ -44,8 +53,9 @@ describe("BookRideUsecase (avec DB)", () => {
     beforeEach(() => {
         mockRideRepo = new MockRideRepository();
         mockRiderRepo = new MockRiderRepository();
+        mockBlockedDriverRepo = new MockBlockedDriverRepository();
         // On injecte les mocks dans le Use Case
-        usecase = new BookRideUsecase(mockRideRepo as any, mockRiderRepo as any);
+        usecase = new BookRideUsecase(mockRideRepo as any, mockRiderRepo as any, mockBlockedDriverRepo as any);
     });
 
     it("should save a new ride into the database", async () => {
@@ -96,6 +106,30 @@ describe("BookRideUsecase (avec DB)", () => {
         mockRideRepo.awaitingDriverRide = undefined;
 
         const result = await usecase.execute(newRideData);
+
+        expect(result.id).toBe("ride_generated_by_db");
+    });
+
+    it("should refuse a driver blocked by the rider", async () => {
+        mockBlockedDriverRepo.blockedDriverIds = ["driver_456"];
+
+        await expect(usecase.execute(newRideData)).rejects.toThrow("Driver is blocked");
+        expect(mockRideRepo.savedRides).toHaveLength(0);
+    });
+
+    it("should accept a driver the rider has not blocked", async () => {
+        mockBlockedDriverRepo.blockedDriverIds = ["another_driver"];
+
+        const result = await usecase.execute(newRideData);
+
+        expect(result.id).toBe("ride_generated_by_db");
+    });
+
+    it("should accept a booking without driver", async () => {
+        mockBlockedDriverRepo.blockedDriverIds = ["driver_456"];
+        const { driverId, ...rideWithoutDriver } = newRideData;
+
+        const result = await usecase.execute(rideWithoutDriver);
 
         expect(result.id).toBe("ride_generated_by_db");
     });

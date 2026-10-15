@@ -62,13 +62,23 @@ class InMemoryRiderRepository {
     }
 }
 
+class InMemoryBlockedDriverRepository {
+    blocked: { riderId: string; driverId: string }[] = [];
+
+    async isBlocked(riderId: string, driverId: string): Promise<boolean> {
+        return this.blocked.some((b) => b.riderId === riderId && b.driverId === driverId);
+    }
+}
+
 describe("Rides API", () => {
     let rides: InMemoryRideRepository;
     let riders: InMemoryRiderRepository;
+    let blockedDrivers: InMemoryBlockedDriverRepository;
 
     beforeEach(() => {
         rides = new InMemoryRideRepository();
         riders = new InMemoryRiderRepository();
+        blockedDrivers = new InMemoryBlockedDriverRepository();
         riders.riders.push({
             id: "rider-1",
             name: "Ada",
@@ -79,7 +89,7 @@ describe("Rides API", () => {
 
     function app() {
         return createApp(
-            new BookRideUsecase(rides as never, riders as never),
+            new BookRideUsecase(rides as never, riders as never, blockedDrivers as never),
             new CancelRideUsecase(rides as never, riders as never, new FakeClock()),
             new GetRideHistoryUsecase(rides as never),
         );
@@ -144,6 +154,22 @@ describe("Rides API", () => {
 
         expect(response.status).toBe(409);
         expect(response.body).toEqual({ error: "Rider already has a pending ride" });
+    });
+
+    it("returns 403 when the rider booked with a driver they blocked", async () => {
+        blockedDrivers.blocked.push({ riderId: "rider-1", driverId: "driver-1" });
+
+        const response = await request(app()).post("/rides").send({
+            riderId: "rider-1",
+            driverId: "driver-1",
+            status: "PENDING",
+            price: 10,
+            penalty: 0,
+            isDriverOnTheWay: false,
+        });
+
+        expect(response.status).toBe(403);
+        expect(response.body).toEqual({ error: "Driver is blocked" });
     });
 
     it("lists the rider history with the driver", async () => {

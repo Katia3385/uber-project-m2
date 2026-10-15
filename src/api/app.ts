@@ -52,11 +52,13 @@ export function createApp(
         const message = error.message || "Unexpected error";
         const status = message === "Ride not found" || message === "Rider not found"
             ? 404
-            : message === "Insufficient funds"
-                ? 402
-                : message === "Ride already cancelled" || message === "Rider already has a pending ride"
-                    ? 409
-                    : 500;
+            : message === "Driver is blocked"
+                ? 403
+                : message === "Insufficient funds"
+                    ? 402
+                    : message === "Ride already cancelled" || message === "Rider already has a pending ride"
+                        ? 409
+                        : 500;
         res.status(status).json({ error: message });
     });
 
