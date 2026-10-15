@@ -47,6 +47,24 @@ describe("CalculatePriceUsecase", () => {
         expect(usecase.execute(from, to, distanceKm)).toBe(14); // 7€ * 2
     });
 
+    it("should double price on Christmas evening", () => {
+        const clock = new FakeClock(new Date("2023-12-25T21:00:00")); // Soirée de Noël, hors heures de pointe
+        const usecase = new CalculatePriceUsecase(clock);
+        expect(usecase.execute(from, to, distanceKm)).toBe(14); // 7€ * 2
+    });
+
+    it("should not double price the day before Christmas", () => {
+        const clock = new FakeClock(new Date("2023-12-24T12:00:00"));
+        const usecase = new CalculatePriceUsecase(clock);
+        expect(usecase.execute(from, to, distanceKm)).toBe(7);
+    });
+
+    it("should not double price the day after Christmas", () => {
+        const clock = new FakeClock(new Date("2023-12-26T12:00:00"));
+        const usecase = new CalculatePriceUsecase(clock);
+        expect(usecase.execute(from, to, distanceKm)).toBe(7);
+    });
+
     it("should add 5 euros for UberX", () => {
         const clock = new FakeClock(new Date("2023-06-15"));
         const usecase = new CalculatePriceUsecase(clock);
