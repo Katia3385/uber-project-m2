@@ -3,8 +3,25 @@ import { BookRideUsecase } from "../../src/app/book-ride.usecase";
 import { Ride, Rider } from "../../src/domain/types";
 
 // 1. On crée de faux Repositories (Mocks)
+// Fausse transaction : elle exécute le travail avec les faux repositories et note qu'on est "dans" la transaction
+class MockBookingTransaction {
+    inTransaction = false;
+    constructor(private repositories: { rides: any; riders: any }) {}
+
+    async run<T>(work: (repositories: { rides: any; riders: any }) => Promise<T>): Promise<T> {
+        this.inTransaction = true;
+        try {
+            return await work(this.repositories);
+        } finally {
+            this.inTransaction = false;
+        }
+    }
+}
+
 class MockRideRepository {
     savedRides: Ride[] = [];
+    savedInTransaction: boolean[] = [];
+    isInTransaction: () => boolean = () => false;
     awaitingDriverRide: Ride | undefined = undefined;
 
     async findAwaitingDriverByRiderId(_riderId: string): Promise<Ride | undefined> {
@@ -15,11 +32,23 @@ class MockRideRepository {
         // Simule la base de données qui ajoute un ID
         const saved = { id: "ride_generated_by_db", ...ride };
         this.savedRides.push(saved);
+        this.savedInTransaction.push(this.isInTransaction());
         return saved;
     }
 }
 
 class MockRiderRepository {
+    loyaltyPointsAdded: string[] = [];
+    loyaltyPointsInTransaction: boolean[] = [];
+    isInTransaction: () => boolean = () => false;
+    addLoyaltyPointError: Error | undefined = undefined;
+
+    async addLoyaltyPoint(id: string): Promise<void> {
+        if (this.addLoyaltyPointError) throw this.addLoyaltyPointError;
+        this.loyaltyPointsAdded.push(id);
+        this.loyaltyPointsInTransaction.push(this.isInTransaction());
+    }
+
     rider: Rider | undefined = { id: "rider_123", name: "Test Rider", balance: 100, birthday: "1990-01-01" };
 
     async findById(_id: string): Promise<Rider | undefined> {
@@ -40,6 +69,7 @@ describe("BookRideUsecase (avec DB)", () => {
     let mockRideRepo: MockRideRepository;
     let mockRiderRepo: MockRiderRepository;
     let mockBlockedDriverRepo: MockBlockedDriverRepository;
+    let mockTransaction: MockBookingTransaction;
 
     const newRideData = {
         riderId: "rider_123",
@@ -55,7 +85,15 @@ describe("BookRideUsecase (avec DB)", () => {
         mockRiderRepo = new MockRiderRepository();
         mockBlockedDriverRepo = new MockBlockedDriverRepository();
         // On injecte les mocks dans le Use Case
-        usecase = new BookRideUsecase(mockRideRepo as any, mockRiderRepo as any, mockBlockedDriverRepo as any);
+        mockTransaction = new MockBookingTransaction({ rides: mockRideRepo, riders: mockRiderRepo });
+        mockRideRepo.isInTransaction = () => mockTransaction.inTransaction;
+        mockRiderRepo.isInTransaction = () => mockTransaction.inTransaction;
+        usecase = new BookRideUsecase(
+            mockRideRepo as any,
+            mockRiderRepo as any,
+            mockBlockedDriverRepo as any,
+            mockTransaction as any,
+        );
     });
 
     it("should save a new ride into the database", async () => {
@@ -132,5 +170,32 @@ describe("BookRideUsecase (avec DB)", () => {
         const result = await usecase.execute(rideWithoutDriver);
 
         expect(result.id).toBe("ride_generated_by_db");
+    });
+
+    it("should add one loyalty point to the rider for the booked ride", async () => {
+        await usecase.execute(newRideData);
+
+        expect(mockRiderRepo.loyaltyPointsAdded).toEqual(["rider_123"]);
+    });
+
+    it("should save the ride and add the loyalty point inside the same transaction", async () => {
+        await usecase.execute(newRideData);
+
+        expect(mockRideRepo.savedInTransaction).toEqual([true]);
+        expect(mockRiderRepo.loyaltyPointsInTransaction).toEqual([true]);
+    });
+
+    it("should fail the booking when the loyalty point cannot be added", async () => {
+        mockRiderRepo.addLoyaltyPointError = new Error("Rider not found");
+
+        await expect(usecase.execute(newRideData)).rejects.toThrow("Rider not found");
+    });
+
+    it("should not add a loyalty point when the booking is refused", async () => {
+        mockRiderRepo.rider = { id: "rider_123", name: "Test Rider", balance: 5, birthday: "1990-01-01" };
+
+        await expect(usecase.execute(newRideData)).rejects.toThrow("Insufficient funds");
+
+        expect(mockRiderRepo.loyaltyPointsAdded).toEqual([]);
     });
 });

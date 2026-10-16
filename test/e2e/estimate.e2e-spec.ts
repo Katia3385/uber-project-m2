@@ -8,7 +8,7 @@ import { CalculatePriceUsecase } from "../../src/app/calculate-price.usecase";
 import { EstimateRideUsecase } from "../../src/app/estimate-ride.usecase";
 import { BookRideFromEstimateUsecase } from "../../src/app/book-ride-from-estimate.usecase";
 import { Ride, Rider } from "../../src/domain/types";
-import { InMemoryEstimateRepository, StubScanTrip, TestClock } from "./support/estimate-fakes";
+import { InMemoryEstimateRepository, StubScanTrip, TestClock, inMemoryTransaction } from "./support/estimate-fakes";
 
 class InMemoryRideRepository {
     rides: Ride[] = [];
@@ -48,6 +48,11 @@ class InMemoryRiderRepository {
         const rider = this.riders.find((r) => r.id === id);
         if (rider) rider.balance = balance;
     }
+
+    async addLoyaltyPoint(id: string): Promise<void> {
+        const rider = this.riders.find((r) => r.id === id);
+        if (rider) rider.loyaltyPoints = (rider.loyaltyPoints ?? 0) + 1;
+    }
 }
 
 class InMemoryBlockedDriverRepository {
@@ -66,7 +71,7 @@ describe("Estimate API", () => {
         clock = new TestClock();
         const riders = new InMemoryRiderRepository();
         const estimates = new InMemoryEstimateRepository();
-        const bookRide = new BookRideUsecase(rides as never, riders as never, new InMemoryBlockedDriverRepository() as never);
+        const bookRide = new BookRideUsecase(rides as never, riders as never, new InMemoryBlockedDriverRepository() as never, inMemoryTransaction(rides, riders) as never);
 
         server = createApp(
             bookRide,

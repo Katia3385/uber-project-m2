@@ -43,3 +43,12 @@ export class InMemoryEstimateRepository {
         if (estimate) estimate.used = true;
     }
 }
+
+// Fausse transaction : elle passe simplement les dépôts en mémoire au travail demandé
+export function inMemoryTransaction(rides: unknown, riders: unknown) {
+    return {
+        async run<T>(work: (repositories: { rides: any; riders: any }) => Promise<T>): Promise<T> {
+            return work({ rides, riders });
+        },
+    };
+}

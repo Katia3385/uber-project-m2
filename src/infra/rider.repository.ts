@@ -23,12 +23,20 @@ export class RiderRepository {
         await this.db('riders').where({ id }).update({ balance });
     }
 
+    // Un point de fidélité par course : on lève une erreur si le Rider n'existe pas, pour que la transaction soit annulée
+    async addLoyaltyPoint(id: string): Promise<void> {
+        const updatedRows = await this.db('riders').where({ id }).increment('loyalty_points', 1);
+        if (updatedRows === 0) throw new Error("Rider not found");
+    }
+
     // Postgres renvoie la colonne `date` sous forme d'objet Date : on la remet en chaîne YYYY-MM-DD,
     // comme le promet le type Rider.
     private mapToDomain(dbRider: any): Rider {
+        const { loyalty_points, ...rider } = dbRider;
         return {
-            ...dbRider,
+            ...rider,
             birthday: format(dbRider.birthday, 'yyyy-MM-dd'),
+            loyaltyPoints: loyalty_points,
         };
     }
 }

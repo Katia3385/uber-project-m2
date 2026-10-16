@@ -8,6 +8,7 @@ export type Rider = {
     name: string;
     balance: number;
     birthday: string;
+    loyaltyPoints?: number;
 };
 
 export type Driver = {

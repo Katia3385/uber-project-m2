@@ -59,4 +59,33 @@ describe('RiderRepository Integration', () => {
         const foundRider = await repository.findById(savedRider.id!);
         expect(foundRider?.balance).toBe(95);
     });
+
+    it('should create a rider with 0 loyalty points', async () => {
+        const savedRider = await repository.save({
+            name: 'Nora',
+            balance: 20,
+            birthday: '1991-02-03'
+        });
+
+        expect(savedRider.loyaltyPoints).toBe(0);
+    });
+
+    it('should add a loyalty point to a rider', async () => {
+        const savedRider = await repository.save({
+            name: 'Omar',
+            balance: 20,
+            birthday: '1991-02-03'
+        });
+
+        await repository.addLoyaltyPoint(savedRider.id!);
+        await repository.addLoyaltyPoint(savedRider.id!);
+
+        const foundRider = await repository.findById(savedRider.id!);
+        expect(foundRider?.loyaltyPoints).toBe(2);
+    });
+
+    it('should refuse to add a loyalty point to an unknown rider', async () => {
+        await expect(repository.addLoyaltyPoint('00000000-0000-0000-0000-000000000000'))
+            .rejects.toThrow('Rider not found');
+    });
 });

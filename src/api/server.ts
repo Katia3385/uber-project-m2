@@ -6,6 +6,7 @@ import { RideRepository } from "../infra/ride.repository";
 import { RiderRepository } from "../infra/rider.repository";
 import { BlockedDriverRepository } from "../infra/blocked-driver.repository";
 import { SystemClock } from "../infra/system-clock";
+import { BookingTransaction } from "../infra/booking-transaction";
 import { EstimateRepository } from "../infra/estimate.repository";
 import { createGoogleDistanceScanner } from "../infra/google-distance-scanner";
 import { ScanTripUsecase } from "../app/scan-trip.usecase";
@@ -32,7 +33,7 @@ const blockedDriverRepository = new BlockedDriverRepository(db);
 
 const clock = new SystemClock();
 const estimateRepository = new EstimateRepository(db);
-const bookRide = new BookRideUsecase(rideRepository, riderRepository, blockedDriverRepository);
+const bookRide = new BookRideUsecase(rideRepository, riderRepository, blockedDriverRepository, new BookingTransaction(db));
 
 const app = createApp(
     bookRide,

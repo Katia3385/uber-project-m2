@@ -9,7 +9,7 @@ import { Clock } from "../../src/domain/clock";
 import { CalculatePriceUsecase } from "../../src/app/calculate-price.usecase";
 import { EstimateRideUsecase } from "../../src/app/estimate-ride.usecase";
 import { BookRideFromEstimateUsecase } from "../../src/app/book-ride-from-estimate.usecase";
-import { InMemoryEstimateRepository, StubScanTrip } from "./support/estimate-fakes";
+import { InMemoryEstimateRepository, StubScanTrip, inMemoryTransaction } from "./support/estimate-fakes";
 
 class FakeClock implements Clock {
     now(): Date {
@@ -64,6 +64,11 @@ class InMemoryRiderRepository {
         const rider = this.riders.find((r) => r.id === id);
         if (rider) rider.balance = balance;
     }
+
+    async addLoyaltyPoint(id: string): Promise<void> {
+        const rider = this.riders.find((r) => r.id === id);
+        if (rider) rider.loyaltyPoints = (rider.loyaltyPoints ?? 0) + 1;
+    }
 }
 
 class InMemoryBlockedDriverRepository {
@@ -94,7 +99,7 @@ describe("Rides API", () => {
     function app() {
         const clock = new FakeClock();
         const estimates = new InMemoryEstimateRepository();
-        const bookRide = new BookRideUsecase(rides as never, riders as never, blockedDrivers as never);
+        const bookRide = new BookRideUsecase(rides as never, riders as never, blockedDrivers as never, inMemoryTransaction(rides, riders) as never);
 
         return createApp(
             bookRide,

@@ -1,22 +1,26 @@
 import { RideRepository } from "../infra/ride.repository";
 import { RiderRepository } from "../infra/rider.repository";
 import { BlockedDriverRepository } from "../infra/blocked-driver.repository";
+import { BookingTransaction } from "../infra/booking-transaction";
 import { Ride } from "../domain/types";
 
 export class BookRideUsecase {
     private rideRepository: RideRepository;
     private riderRepository: RiderRepository;
     private blockedDriverRepository: BlockedDriverRepository;
+    private bookingTransaction: BookingTransaction;
 
     // Le constructeur reçoit les Repositories (Injection de Dépendances)
     constructor(
         rideRepository: RideRepository,
         riderRepository: RiderRepository,
         blockedDriverRepository: BlockedDriverRepository,
+        bookingTransaction: BookingTransaction,
     ) {
         this.rideRepository = rideRepository;
         this.riderRepository = riderRepository;
         this.blockedDriverRepository = blockedDriverRepository;
+        this.bookingTransaction = bookingTransaction;
     }
 
     // La méthode devient async car elle doit attendre la réponse de la DB
@@ -41,9 +45,13 @@ export class BookRideUsecase {
             throw new Error("Rider already has a pending ride");
         }
 
-        // On délègue la sauvegarde au repository.
-        // C'est lui qui va parler à PostgreSQL et récupérer l'ID généré.
-        const savedRide = await this.rideRepository.save(rideData as Ride);
+        // Bonus : un point de fidélité par course. La course et le point sont enregistrés dans
+        // une même transaction : si le point ne s'ajoute pas, la course n'est pas sauvegardée.
+        const savedRide = await this.bookingTransaction.run(async ({ rides, riders }) => {
+            const ride = await rides.save(rideData as Ride);
+            await riders.addLoyaltyPoint(rideData.riderId);
+            return ride;
+        });
 
         return savedRide;
     }
